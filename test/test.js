@@ -1,25 +1,36 @@
+EC.export(this);
+
 print = function () {
     console.log.apply(console, arguments);
 };
 
-EC.match([1, 2, 3], {
-    "[x, y]": function (r) {
+EC.match([1, 2, 3, 4, 5], [
+    ["[, x, y, , z]", function (r) {
         with (r) {
-            print(x, y);
+            print(x, y, z);
         }
-    },
+    }],
 
-    "_": function () {
+    ["?", function () {
         print("not matched");
-    }
-});
+    }]
+]);
 
-EC.match(new Date(), {
-    "Date()": function (_, date) {
-        print("I'm date :: " + date.toString());
-    },
+var year = EC.match(new Date(), [
+    ["Date()", function (_, that) {
+        return that.getYear();
+    }],
 
-    "_": function () {
-        print("not matched");
-    }
-});
+    ["Number()", function (_, that) {
+        return that;
+    }],
+
+    ["?", function (_, that) {
+        return null;
+    }]
+]);
+
+console.log(year);
+
+// console.dir(EC.Parser.parse("x"));
+console.dir(EC.Parser.parse("[  x  , ?, _Fo, lo, { foo: {f:? }, a, ,  , a }  , z, [ ]  ]"));
