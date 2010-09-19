@@ -1,213 +1,371 @@
 /*
  * ECMatch - Pattern match library for ECMAScript (JavaScript)
  *
- * written by mooz <stillpedant@gmail.com>
- *
- * ==================================================
- *   Usage
- * ==================================================
- *
- * EC.match([1, 2, 3], {
- *     "[x, y]": function (r) {
- *         with (r) {
- *             print(x, y); // => 1, 2
- *         }
- *     },
- *
- *     "_": function () {
- *         print("not matched");
- *     }
- * });
- *
- * EC.match(new Date(), {
- *     "Date()": function (_, date) {
- *         print("I'm date " + date);
- *     },
- *
- *     "_": function () {
- *         print("not matched");
- *     }
- * });
- *
+ * author mooz <stillpedant@gmail.com>
  */
 
 var EC = (function () {
-    var util = {
-        chomp:
-        function chomp(str, opt_info) {
-            if (opt_info)
-                opt_info.offset = str.match(/^\s*/)[0].length;
-
-            return str.replace(/^\s+/, "");
-        },
-
-        last:
-        function last(seq) {
-            // TODO: should use charAt
-            return seq[seq.length - 1];
+    var Util = {
+        tap: function tap(v) {
+            console.dir(v);
+            return v;
         },
 
         skip:
         function skip(str, pat) {
             var matched = str.match(pat);
             return matched ? str.slice(matched[0].length) : str;
+        },
+
+        error:
+        function error(msg) {
+            var caller = error.caller;
+            throw caller.name + " :: " + msg;
+        },
+
+        expected:
+        function expected(msg, exp, got) {
+            Util.error(msg + ". Expected '" + exp + "' but got '" + got + "'");
         }
     };
 
-    // Pattern    := Array | Object | Function
-    // Array      := "[" (Identifier ",")* Identifier? "]"
-    // Object     := "{" (Identifier : Pattern)* "}"
-    // Function   := "{" Object? "}"
-    // Identifier := /^[a-zA-Z$][a-zA-Z0-9$]*/
+    var Parser = {
+        // Token Type
+        TT: {
+            ARRAY         : "Array",
+            OBJECT        : "Object",
+            ObjectElement : "ObjectElement",
+            FUNCTION      : "Function",
+            IDENTIFIER    : "Identifier",
+            ANY           : "Any",
+            BLANK         : "Blank"
+        },
 
-    function parsePatterns(str, endc) {
-        var token;
-        var tokens = [];
-        var stream = str;
+        // Character
+        CH: {
+            OBJECT_B  : "{",
+            OBJECT_E  : "}",
+            ARRAY_B   : "[",
+            ARRAY_E   : "]",
+            ANY       : "?",
+            SEPARATOR : ","
+        },
 
-        while (stream.length && (stream.charAt(0) !== endc)) {
-            tokens.push(token = parsePattern(stream));
-            stream = util.skip(stream.slice(token.nextIndex), /\s*,\s*/);
-        }
+        skipSpaces:
+        function skipSpaces() {
+            this.rest = Util.skip(this.rest, /\s*/);
+        },
 
-        if (stream.charAt(0) !== endc)
-            throw "Parse Error :: Unclosed patterns. " + endc + " is needed";
+        skipChars:
+        function skipChars(count) {
+            this.rest = this.rest.slice(count);
+        },
 
-        return {
-            tokens    : tokens,
-            nextIndex : str.length - (stream.length + 1)
-        };
-    }
+        peekCurrent:
+        function peekCurrent() {
+            return this.rest.charAt(0);
+        },
 
-    function parseArray(str) {
-        // TODO: assertEq(str[0], "[");
-        var result = parsePatterns(str.slice(1), "]");
+        getCurrent:
+        function getCurrent() {
+            var current = this.gotLast = this.rest.charAt(0);
+            this.rest = this.rest.slice(1);
+            return current;
+        },
 
-        return {
-            type      : "Array",
-            children  : result.tokens,
-            nextIndex : result.nextIndex
-        };
-    }
+        unget:
+        function unget(c) {
+            this.rest = c + this.rest;
+        },
 
-    function parseObject(str) {
-        // TODO: assertEq(str[0], "{");
-        // TODO: Implement this.
-        var result = parsePatterns(str.slice(1), "}");
+        hasNext:
+        function hasNext() {
+            return !!this.rest.length;
+        },
 
-        return {
-            type      : "Object",
-            children  : result.tokens,
-            nextIndex : result.nextIndex
-        };
-    }
+        // ============================================================ //
+        // Pattern       := Array | Object | Function | Any
+        // Element       := Pattern | Identifier
+        // Array         := "[" (Element? ",")* Element? "]"
+        // Object        := "{" ((ObjectElement ",")* ObjectElement)? "}"
+        // ObjectElement := Identifier (":" Element)?
+        // Function      := Identifier "(" Object? ")"
+        // Identifier    := /^[a-zA-Z$][a-zA-Z0-9$]*/
+        // Any           := "?"
+        // ============================================================ //
 
-    function parseFunction(str, m) {
-        // TODO: assertEq what?
-        var token = {
-            type : "Function",
-            name : m[1]
-        };
+        parse:
+        function parse(str) {
+            this.whole = this.rest = str;
 
-        var m2;
+            return this.parsePattern();
+        },
 
-        if ((m2 = str.match(/^\(\t*\)/))) {
-            token.children  = [];
-            token.nextIndex = m2[0].length;
-        } else if (str.match(/^\({/)) {
-            var result = parseObject(str.slice(m[0].length), ")");
-            token.children  = result.tokens;
-            token.nextIndex = result.nextIndex;
-        }
+        parsePattern:
+        function parsePattern(allowIdentifier) {
+            var token;
 
-        return token;
-    }
+            this.skipSpaces();
 
-    function parseIdentifier(str, m) {
-        // TODO: assertEq what?
-        return {
-            type      : "Identifier",
-            name      : m[0],
-            nextIndex : m[0].length
-        };
-    }
-
-    function parsePattern(str) {
-        var ci     = {};           // chomp info
-        var stream = util.chomp(str, ci);
-        var m;
-
-        var token;
-
-        if ((m = stream.match(/^\[/))) {
-            // array
-            token = parseArray(stream);
-        } else if ((m = stream.match(/^{/))) {
-            // object
-            token = parseObject(stream);
-        } else if ((m = stream.match(/^([_a-zA-Z$][_a-zA-Z0-9$]*)\t*\(/))) {
-            token = parseFunction(stream, m);
-        } else if ((m = stream.match(/^[_a-zA-Z$][_a-zA-Z0-9$]*/))) {
-            token = parseIdentifier(stream, m);
-        } else if (stream.match(/^_/)) {
-            // guard
-            token = {
-                type      : "Guard",
-                nextIndex : 1
-            };
-        } else if (stream.match(/^_/)) {
-            // sucks
-            throw "Uknown";
-        }
-
-        token.nextIndex += ci.offset;
-
-        return token;
-    }
-
-    var self = {
-        match:
-        function match(target, patterns) {
-            var matchers = [];
-
-            for (var pattern in patterns) if (patterns.hasOwnProperty(pattern)) {
-                var token = parsePattern(pattern);
-
-                matchers.push([token, patterns[pattern]]);
+            switch (this.peekCurrent()) {
+            case this.CH.ARRAY_B:
+                token = this.parseArray();
+                break;
+            case this.CH.OBJECT_B:
+                token = this.parseObject();
+                break;
+            case this.CH.ANY:
+                token = this.parseAny();
+                break;
+            default:
+                token = this.parseFunction(allowIdentifier);
+                break;
             }
 
-            matchers.some(function (pair) {
-                var token   = pair[0];
-                var handler = pair[1];
+            this.skipSpaces();
 
-                var result = {};
+            return token;
+        },
 
-                switch (token.type) {
-                case "Array":
-                    if (!(target instanceof Array))
-                        return false;
+        parseElement:
+        function parseElement() {
+            return this.parsePattern(true);
+        },
 
-                    for (var i = 0; i < token.children.length; ++i) {
-                        var v = token.children[i];
-                        if (v.name)
-                            result[v.name] = target[i];
-                    }
+        parseObjectElement:
+        function parseObjectElement() {
+            var key = this.parseIdentifier();
+
+            var token = {
+                type     : this.TT.ObjectElement,
+                key      : key.name,
+                value    : null
+            };
+
+            this.skipSpaces();
+
+            if (this.peekCurrent() === ":") {
+                this.getCurrent();
+                token.value = this.parseElement();
+            }
+
+            return token;
+        },
+
+        parseElements:
+        function parseElements(endSign) {
+            return this.parseSeparatedTokens({
+                endSign    : endSign,
+                allowBlank : true,
+                action     : function (c) {
+                    return this.parseElement();
+                }
+            });
+        },
+
+        parseObjectElements:
+        function parseElements(endSign) {
+            return this.parseSeparatedTokens({
+                endSign    : endSign,
+                allowBlank : false,
+                action     : function (c) {
+                    return this.parseObjectElement();
+                }
+            });
+        },
+
+        parseSeparatedTokens:
+        function parseSeparatedTokens(context) {
+            var tokens = [];
+
+            var endSign    = context.endSign;
+            var allowBlank = context.allowBlank;
+            var action     = context.action;
+
+            while (this.hasNext()) {
+                this.skipSpaces();
+
+                var c = this.peekCurrent();
+                if (c === endSign)
                     break;
-                case "Function":
-                    var constructor;
 
-                    if (typeof target !== "undefined" && target !== null)
-                        constructor = target.constructor;
+                if (c === this.CH.SEPARATOR) {
+                    if (allowBlank)
+                        tokens.push({ type : this.TT.BLANK });
+                    else
+                        Util.error("Blank element is not allowed in this context");
+                } else {
+                    var parsed = action.call(this, c);
 
-                    if (!constructor || constructor.name !== token.name)
-                        return false;
-                    break;
-                default:
-                    return false;
+                    if (parsed)
+                        tokens.push(parsed);
                 }
 
-                return (handler(result, target), true);
+                var c2 = this.peekCurrent();
+                if (c2 === endSign)
+                    break;
+
+                // consume separator
+                if (c2 !== this.CH.SEPARATOR)
+                    Util.error("Expected ',' or '" + endSign + "' but got " + c2);
+
+                this.getCurrent(); // consume separator
+            }
+
+            if (this.getCurrent() !== endSign)
+                Util.expected("Unclosed separated tokens", endSign, this.gotLast);
+
+            return tokens;
+        },
+
+        parseArray:
+        function parseArray() {
+            if (this.getCurrent() !== this.CH.ARRAY_B)
+                Util.expected("Invalid Array", this.CH.ARRAY_B, this.gotLast);
+
+            return {
+                type     : this.TT.ARRAY,
+                children : this.parseElements(this.CH.ARRAY_E)
+            };
+        },
+
+        parseObject:
+        function parseObject() {
+            if (this.getCurrent() !== this.CH.OBJECT_B)
+                Util.expected("Invalid object", this.CH.OBJECT_B, this.gotLast);
+
+            return {
+                type     : this.TT.OBJECT,
+                children : this.parseObjectElements(this.CH.OBJECT_E)
+            };
+        },
+
+        parseFunction:
+        function parseFunction(acceptIdentifier) {
+            var nameToken = this.parseIdentifier();
+
+            this.skipSpaces();
+
+            if (this.peekCurrent() !== "(") {
+                if (acceptIdentifier)
+                    return nameToken;
+                Util.expected("Invalid function", "(", this.peekCurrent());
+            }
+
+            this.getCurrent();  // consume "("
+
+            var token = {
+                type : this.TT.FUNCTION,
+                name : nameToken.name
+            };
+
+            this.skipSpaces();
+
+            if (this.peekCurrent() === this.CH.OBJECT_B)
+                token.children = this.parseObject();
+            else
+                token.children = null;
+
+            this.skipSpaces();
+
+            if (this.getCurrent() !== ")")
+                Util.expected("Invalid function", ")", this.gotLast);
+
+            return token;
+        },
+
+        parseIdentifier:
+        function parseIdentifier() {
+            var m = this.rest.match(/^[_a-zA-Z$][_a-zA-Z0-9$]*/);
+
+            if (!m)
+                Util.error("Invalid identifier '" + this.peekCurrent() + "'");
+
+            this.skipChars(m[0].length);
+
+            return {
+                type : this.TT.IDENTIFIER,
+                name : m[0]
+            };
+        },
+
+        parseAny:
+        function parseAny() {
+            if (this.getCurrent() !== this.CH.ANY)
+                Util.expected("Invalid any", this.CH.ANY, this.gotLast);
+
+            return {
+                type : this.TT.ANY
+            };
+        }
+    };
+
+    var Matcher = {
+        match:
+        function (target, node) {
+            var result = {};
+
+            switch (node.type) {
+            case "Array":
+                if (!(target instanceof Array))
+                    return false;
+
+                for (var i = 0; i < node.children.length; ++i) {
+                    var v = node.children[i];
+                    if (v.name)
+                        result[v.name] = target[i];
+                }
+                break;
+            case "Function":
+                var constructor;
+
+                if (typeof target !== "undefined" && target !== null)
+                    constructor = target.constructor;
+
+                if (!constructor || constructor.name !== node.name)
+                    return false;
+                break;
+            default:
+                return false;
+            }
+
+            return result;
+        }
+    };
+
+    var self = {
+        Parser: Parser,
+        Matcher: Matcher,
+
+        export:
+        function (context, name) {
+            name = name || "match";
+
+            if (context) {
+                context[name] = function () {
+                    return self.match.apply(self, arguments);
+                };
+            }
+        },
+
+        match:
+        function match(target, patterns) {
+            var value;
+
+            patterns.some(function (pair) {
+                var pattern = pair[0];
+                var handler = pair[1];
+
+                var node   = Parser.parse(pattern);
+                var result = Matcher.match(target, node);
+
+                if (result) {
+                    value = handler(result, target);
+                    return true; // break;
+                }
             });
+
+            return value;
         }
     };
 
