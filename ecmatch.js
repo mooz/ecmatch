@@ -32,13 +32,13 @@ var EC = (function () {
     var Parser = {
         // Token Type
         TT: {
-            ARRAY         : "Array",
-            OBJECT        : "Object",
-            ObjectElement : "ObjectElement",
-            FUNCTION      : "Function",
-            IDENTIFIER    : "Identifier",
-            ANY           : "Any",
-            BLANK         : "Blank"
+            ARRAY          : "Array",
+            OBJECT         : "Object",
+            OBJECT_ELEMENT : "ObjectElement",
+            FUNCTION       : "Function",
+            IDENTIFIER     : "Identifier",
+            ANY            : "Any",
+            BLANK          : "Blank"
         },
 
         // Character
@@ -137,8 +137,8 @@ var EC = (function () {
             var key = this.parseIdentifier();
 
             var token = {
-                type     : this.TT.ObjectElement,
-                key      : key.name,
+                type     : this.TT.OBJECT_ELEMENT,
+                name     : key.name,
                 value    : null
             };
 
@@ -302,21 +302,21 @@ var EC = (function () {
 
     var Matcher = {
         match:
-        function (target, node) {
-            var result = {};
+        function (target, node, result) {
+            var TT = Parser.TT;
 
             switch (node.type) {
-            case "Array":
+            case TT.ARRAY:
                 if (!(target instanceof Array))
                     return false;
 
                 for (var i = 0; i < node.children.length; ++i) {
                     var v = node.children[i];
                     if (v.name)
-                        result[v.name] = target[i];
+                        Matcher.match(target[i], v, result);
                 }
                 break;
-            case "Function":
+            case TT.FUNCTION:
                 var constructor;
 
                 if (typeof target !== "undefined" && target !== null)
@@ -325,11 +325,28 @@ var EC = (function () {
                 if (!constructor || constructor.name !== node.name)
                     return false;
                 break;
+            case TT.OBJECT:
+                if (!(target instanceof Object))
+                    return false;
+
+                for (var i = 0; i < node.children.length; ++i) {
+                    var v = node.children[i];
+                    if (v.name)
+                        Matcher.match(target[v.name], v, result);
+                }
+
+                break;
+            case TT.IDENTIFIER:
+                result[node.name] = target;
+                break;
+            case TT.OBJECT_ELEMENT:
+                result[node.name] = target;
+                break;
             default:
                 return false;
             }
 
-            return result;
+            return true;
         }
     };
 
@@ -357,9 +374,9 @@ var EC = (function () {
                 var handler = pair[1];
 
                 var node   = Parser.parse(pattern);
-                var result = Matcher.match(target, node);
+                var result = {};
 
-                if (result) {
+                if (Matcher.match(target, node, result)) {
                     value = handler(result, target);
                     return true; // break;
                 }
