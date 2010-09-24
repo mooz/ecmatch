@@ -1,0 +1,86 @@
+html {
+}
+
+body {
+    background-color : #f9f9f9;
+    font-family      : 'Trebuchet MS', Arial, Helvetica, sans-serif;
+    font-size        : 12px;
+    height           : 100%;
+}
+
+/* ==================================================
+   href
+   ================================================== */
+
+a {
+    text-decoration : none;
+    color           : #e64460;
+    font-weight     : bold;
+}
+
+a, a:link, a:visited {
+}
+
+a:hover, a:active {
+    text-decoration : none;
+    text-shadow     : 0 0 1.05em #7d7d7d;
+}
+
+/* ==================================================
+   Title
+   ================================================== */
+
+h1 {
+    font-family    : "Gill Sans", Helvetica, Arial, sans-serif;
+    font-weight    : 400;
+    letter-spacing : 1px;
+    line-height    : 20px;
+    margin         : 20px 0;
+    font-variant   : small-caps;
+    text-align     : center;
+    font-size      : 300%;
+    text-shadow    : 0 0 4px #b1b1b1;
+}
+
+#subtitle > * {
+    margin      : 3px auto;
+    font-weight : normal;
+    font-size   : 120%;
+    font-family : "Gill Sans", Helvetica, Arial, sans-serif;
+    text-align  : center;
+    color       : #849eaa;
+}
+
+/* ==================================================
+   Content
+   ================================================== */
+
+#input, pre.code {
+    font-family : Monaco, Consolas, "Bitstream Vera Sans Mono", monospace;
+    display     : block;
+    margin      : 10px auto;
+    width       : 700px;
+    font-size   : 100%;
+    border      : 1px solid #a7a9ba;
+    padding     : 10px;
+
+    outline     : medium none;
+}
+
+#input {
+    height : 180px;
+}
+
+pre.code {
+    padding               : 10px;
+    min-height            : 20px;
+    overflow              : auto;
+}
+
+/* ==================================================
+   Text
+   ================================================== */
+
+.error {
+    color : #be0043;
+}
