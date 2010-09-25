@@ -6,7 +6,8 @@
 
 var EC = (function () {
     var Util = {
-        tap: function tap(v) {
+        tap:
+        function tap(v) {
             console.dir(v);
             return v;
         },
