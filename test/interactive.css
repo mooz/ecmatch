@@ -55,29 +55,34 @@ h1 {
    Content
    ================================================== */
 
-#input, pre.code {
+.input, pre.code {
     background-color : white;
     font-family      : Monaco, Consolas, "Bitstream Vera Sans Mono", monospace;
     display          : block;
     margin           : 10px auto;
-    width            : 700px;
-    font-size        : 100%;
+    font-size        : 90%;
     padding          : 10px;
 
     outline          : medium none;
 }
 
-#input {
+.input {
+    width  : 350px;
     height : 5em;
     border : 4px solid black;
 }
 
 pre.code {
+    width              : 700px;
     border             : 0;
     -moz-border-radius : 8px;
     padding            : 10px;
     min-height         : 20px;
     overflow           : auto;
+}
+
+.tbl-two-column {
+    margin : auto;
 }
 
 /* ==================================================
