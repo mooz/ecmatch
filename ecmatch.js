@@ -116,7 +116,7 @@ var EC = (function () {
         function parse(str) {
             this.whole = this.rest = str;
 
-            var topLevel = this.parsePattern(true);
+            var topLevel = this.parsePattern();
 
             this.skipSpaces();
 
@@ -127,7 +127,7 @@ var EC = (function () {
         },
 
         parsePattern:
-        function parsePattern(allowIdentifier) {
+        function parsePattern() {
             var token, c;
 
             this.skipSpaces();
@@ -147,7 +147,7 @@ var EC = (function () {
                 if (/^[0-9]/.test(c)) {
                     token = this.parseNumber();
                 } else {
-                    token = this.parseFunction(allowIdentifier);
+                    token = this.parseFunction(true);
                 }
                 break;
             }
@@ -155,11 +155,6 @@ var EC = (function () {
             this.skipSpaces();
 
             return token;
-        },
-
-        parseElement:
-        function parseElement() {
-            return this.parsePattern(true);
         },
 
         parseObjectElement:
@@ -176,25 +171,25 @@ var EC = (function () {
 
             if (this.peekCurrent() === ":") {
                 this.getCurrent();
-                token.value = this.parseElement();
+                token.value = this.parsePattern();
             }
 
             return token;
         },
 
-        parseElements:
-        function parseElements(endSign) {
+        parsePatterns:
+        function parsePatterns(endSign) {
             return this.parseSeparatedTokens({
                 endSign    : endSign,
                 allowBlank : true,
                 action     : function (c) {
-                    return this.parseElement();
+                    return this.parsePattern();
                 }
             });
         },
 
         parseObjectElements:
-        function parseElements(endSign) {
+        function parseObjectElements(endSign) {
             return this.parseSeparatedTokens({
                 endSign    : endSign,
                 allowBlank : false,
@@ -255,7 +250,7 @@ var EC = (function () {
 
             return {
                 type     : this.TT.ARRAY,
-                children : this.parseElements(this.CH.ARRAY_E)
+                children : this.parsePatterns(this.CH.ARRAY_E)
             };
         },
 
