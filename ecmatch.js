@@ -364,8 +364,7 @@ var EC = (function () {
 
                 for (var i = 0; i < node.children.length; ++i) {
                     var v = node.children[i];
-                    if (v.name)
-                        Matcher.match(target[i], v, result);
+                    Matcher.match(target[i], v, result);
                 }
                 break;
             case TT.FUNCTION:
