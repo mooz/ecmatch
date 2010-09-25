@@ -48,15 +48,16 @@ var EC = (function () {
     var Parser = {
         // Token Type
         TT: {
-            ARRAY          : "Array",
-            OBJECT         : "Object",
-            OBJECT_ELEMENT : "ObjectElement",
-            FUNCTION       : "Function",
-            IDENTIFIER     : "Identifier",
-            NUMBER         : "Number",
-            STRING         : "String",
-            ANY            : "Any",
-            BLANK          : "Blank"
+            ARRAY              : "Array",
+            OBJECT             : "Object",
+            OBJECT_ELEMENT     : "ObjectElement",
+            FUNCTION           : "Function",
+            IDENTIFIER         : "Identifier",
+            IDENTIFIER_SPECIAL : "IdentifierSpecial",
+            NUMBER             : "Number",
+            STRING             : "String",
+            ANY                : "Any",
+            BLANK              : "Blank"
         },
 
         // Character
@@ -102,15 +103,17 @@ var EC = (function () {
         },
 
         // ============================================================ //
-        // Pattern       := Array | Object | Function | Any | Identifier | Number | String
-        // Array         := "[" (Pattern? ",")* Pattern? "]"
-        // Object        := "{" ((ObjectElement ",")* ObjectElement)? "}"
-        // ObjectElement := Identifier (":" Pattern)?
-        // Function      := Identifier "(" Object? ")"
-        // Identifier    := /^[a-zA-Z$][a-zA-Z0-9$]*/
-        // Number        := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
-        // String        := /^(["'])(?:[^\1]|\\\1)*?\1/
-        // Any           := "_"
+        // Pattern           := Array | Object | Function | Any |
+        //                      Identifier | IdentifierSpecial | Number | String
+        // Array             := "[" (Pattern? ",")* Pattern? "]"
+        // Object            := "{" ((ObjectElement ",")* ObjectElement)? "}"
+        // ObjectElement     := Identifier (":" Pattern)?
+        // Function          := Identifier "(" Object? ")"
+        // Identifier        := /^[a-zA-Z$][a-zA-Z0-9$]*/
+        // IdentifierSpecial := "true" | "false" | "null" | "undefined"
+        // Number            := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
+        // String            := /^(["'])(?:[^\1]|\\\1)*?\1/
+        // Any               := "_"
         // ============================================================ //
 
         parse:
@@ -278,6 +281,9 @@ var EC = (function () {
                 Util.expected("Invalid function", "(", this.peekCurrent());
             }
 
+            if (nameToken.type === this.TT.IDENTIFIER_SPECIAL)
+                Util.error("Can't use special identifier `" + nameToken.name + "' as the function name");
+
             this.getCurrent();  // consume "("
 
             var token = {
@@ -309,12 +315,33 @@ var EC = (function () {
 
             this.skipChars(m[0].length);
 
-            return m[0] === this.CH.ANY ? {
-                type : this.TT.ANY
-            } : {
-                type : this.TT.IDENTIFIER,
-                name : m[0]
+            var token;
+
+            var specialValueTable = {
+                true      : true,
+                false     : false,
+                null      : null,
+                undefined : void 0
             };
+
+            switch (m[0]) {
+            case this.CH.ANY:
+                token = { type : this.TT.ANY };
+                break;
+            case "true":
+            case "false":
+            case "null":
+            case "undefined":
+                token = { type  : this.TT.IDENTIFIER_SPECIAL,
+                          name  : m[0],
+                          value : specialValueTable[m[0]] };
+                break;
+            default:
+                token = { type : this.TT.IDENTIFIER, name : m[0] };
+                break;
+            }
+
+            return token;
         },
 
         parseNumber:
@@ -376,12 +403,15 @@ var EC = (function () {
                 if (!(target instanceof Object))
                     return false;
 
+                var matched = true;
+
                 for (var i = 0; i < node.children.length; ++i) {
                     var v = node.children[i];
                     if (v.name)
-                        Matcher.match(target[v.name], v, result);
+                        matched = matched && Matcher.match(target[v.name], v, result);
                 }
 
+                return matched;
                 break;
             case TT.IDENTIFIER:
                 result[node.name] = target;
@@ -394,7 +424,8 @@ var EC = (function () {
                 break;
             case TT.NUMBER:
             case TT.STRING:
-                return node.value == target;
+            case TT.IDENTIFIER_SPECIAL:
+                return node.value === target;
                 break;
             case TT.ANY:
                 break;
@@ -442,4 +473,3 @@ var EC = (function () {
 
     return self;
 })();
-
