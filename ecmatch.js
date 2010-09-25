@@ -392,7 +392,16 @@ var EC = (function () {
                 result[node.name] = target;
                 break;
             case TT.OBJECT_ELEMENT:
+                if (node.value)
+                    return Matcher.match(target, node.value, result);
+
                 result[node.name] = target;
+                break;
+            case TT.NUMBER:
+            case TT.STRING:
+                return node.value == target;
+                break;
+            case TT.ANY:
                 break;
             default:
                 return false;
@@ -426,7 +435,8 @@ var EC = (function () {
                 var result = {};
 
                 if (Matcher.match(target, node, result)) {
-                    value = handler(result, target);
+                    value = typeof handler === "function" ?
+                        handler(result, target) : handler;
                     return true; // break;
                 }
             });
