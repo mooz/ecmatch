@@ -2,7 +2,7 @@ html {
 }
 
 body {
-    background-color : #f9f9f9;
+    background-color : #278ac7; /* #f9f9f9; */
     font-family      : 'Trebuchet MS', Arial, Helvetica, sans-serif;
     font-size        : 12px;
     height           : 100%;
@@ -56,25 +56,28 @@ h1 {
    ================================================== */
 
 #input, pre.code {
-    font-family : Monaco, Consolas, "Bitstream Vera Sans Mono", monospace;
-    display     : block;
-    margin      : 10px auto;
-    width       : 700px;
-    font-size   : 100%;
-    border      : 1px solid #a7a9ba;
-    padding     : 10px;
+    background-color : white;
+    font-family      : Monaco, Consolas, "Bitstream Vera Sans Mono", monospace;
+    display          : block;
+    margin           : 10px auto;
+    width            : 700px;
+    font-size        : 100%;
+    padding          : 10px;
 
-    outline     : medium none;
+    outline          : medium none;
 }
 
 #input {
-    height : 180px;
+    height : 5em;
+    border : 4px solid black;
 }
 
 pre.code {
-    padding               : 10px;
-    min-height            : 20px;
-    overflow              : auto;
+    border             : 0;
+    -moz-border-radius : 8px;
+    padding            : 10px;
+    min-height         : 20px;
+    overflow           : auto;
 }
 
 /* ==================================================
