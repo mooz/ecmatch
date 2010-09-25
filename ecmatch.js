@@ -38,7 +38,7 @@ var EC = (function () {
                 else
                     r = f(k, v);
 
-                if (r === false)
+                if (r === true)
                     break;
             }
         }
