@@ -33,20 +33,16 @@ EC.match({ x: { a: 10, b: 20 }, y: [1, 2, 3, 4], z: "foo" }, {
 });
 
 var year = EC.match(new Date(), {
-    "Date()": function (_, that) {
-        return that.getYear();
-    },
-
-    "Number()": function (_, that) {
-        return that;
-    },
-
-    "?": function (_, that) {
-        return null;
-    }
+    "Date()"   : function (_, that) { return that.getYear(); },
+    "Number()" : function (_, that) { return that; },
+    _          : function (_, that) { return null; }
 });
 
 console.log(year);
 
-// console.dir(EC.Parser.parse("x"));
-console.dir(EC.Parser.parse("[  x  , ?, _Fo, lo, { foo: {f:? }, a }  , z, [ ]  ]"));
+console.log(EC.match(10, {
+    2: "foo",
+    20: "bar",
+    30: "hogehoge",
+    _: "!!!"
+}));
