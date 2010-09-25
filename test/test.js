@@ -14,37 +14,37 @@ function assert(a, b, name) {
     }
 }
 
-EC.match([1, 2, 3, 4, 5], [
-    ["[, x, y, , z]", function (r) {
+EC.match([1, 2, 3, 4, 5], {
+    "[, x, y, , z]": function (r) {
         with (r) {
             print(x, y, z);
         }
-    }],
+    },
 
-    ["?", function () {
+    _: function () {
         print("not matched");
-    }]
-]);
+    }
+});
 
-EC.match({ x: { a: 10, b: 20 }, y: [1, 2, 3, 4], z: "foo" }, [
-    ["{ x: {a, b}, y: [c, d], z: e }", function (_, that) {
+EC.match({ x: { a: 10, b: 20 }, y: [1, 2, 3, 4], z: "foo" }, {
+    "{ x: {a, b}, y: [c, d], z: e }": function (_, that) {
         console.dir(_);
-    }]
-]);
+    }
+});
 
-var year = EC.match(new Date(), [
-    ["Date()", function (_, that) {
+var year = EC.match(new Date(), {
+    "Date()": function (_, that) {
         return that.getYear();
-    }],
+    },
 
-    ["Number()", function (_, that) {
+    "Number()": function (_, that) {
         return that;
-    }],
+    },
 
-    ["?", function (_, that) {
+    "?": function (_, that) {
         return null;
-    }]
-]);
+    }
+});
 
 console.log(year);
 

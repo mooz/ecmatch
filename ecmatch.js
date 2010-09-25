@@ -26,6 +26,21 @@ var EC = (function () {
         expected:
         function expected(msg, exp, got) {
             Util.error(msg + ". Expected '" + exp + "' but got '" + got + "'");
+        },
+
+        hashEach:
+        function hashEach(target, f, self) {
+            var r;
+            for (var k in target) if (target.hasOwnProperty(k)) {
+                var v = target[k];
+                if (self)
+                    r = f.call(self, k, v);
+                else
+                    r = f(k, v);
+
+                if (r === false)
+                    break;
+            }
         }
     };
 
@@ -49,7 +64,7 @@ var EC = (function () {
             OBJECT_E  : "}",
             ARRAY_B   : "[",
             ARRAY_E   : "]",
-            ANY       : "?",
+            ANY       : "_",
             SEPARATOR : ","
         },
 
@@ -94,7 +109,7 @@ var EC = (function () {
         // Identifier    := /^[a-zA-Z$][a-zA-Z0-9$]*/
         // Number        := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
         // String        := /^(["'])(?:[^\1]|\\\1)*?\1/
-        // Any           := "?"
+        // Any           := "_"
         // ============================================================ //
 
         parse:
@@ -123,9 +138,6 @@ var EC = (function () {
                 break;
             case this.CH.OBJECT_B:
                 token = this.parseObject();
-                break;
-            case this.CH.ANY:
-                token = this.parseAny();
                 break;
             case "'":
             case '"':
@@ -301,7 +313,9 @@ var EC = (function () {
 
             this.skipChars(m[0].length);
 
-            return {
+            return m[0] === this.CH.ANY ? {
+                type : this.TT.ANY
+            } : {
                 type : this.TT.IDENTIFIER,
                 name : m[0]
             };
@@ -334,16 +348,6 @@ var EC = (function () {
             return {
                 type  : this.TT.STRING,
                 value : m[2]
-            };
-        },
-
-        parseAny:
-        function parseAny() {
-            if (this.getCurrent() !== this.CH.ANY)
-                Util.expected("Invalid any", this.CH.ANY, this.gotLast);
-
-            return {
-                type : this.TT.ANY
             };
         }
     };
@@ -417,10 +421,7 @@ var EC = (function () {
         function match(target, patterns) {
             var value;
 
-            patterns.some(function (pair) {
-                var pattern = pair[0];
-                var handler = pair[1];
-
+            Util.hashEach(patterns, function (pattern, handler) {
                 var node   = Parser.parse(pattern);
                 var result = {};
 
