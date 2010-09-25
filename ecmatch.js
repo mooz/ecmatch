@@ -37,6 +37,8 @@ var EC = (function () {
             OBJECT_ELEMENT : "ObjectElement",
             FUNCTION       : "Function",
             IDENTIFIER     : "Identifier",
+            NUMBER         : "Number",
+            STRING         : "String",
             ANY            : "Any",
             BLANK          : "Blank"
         },
@@ -84,13 +86,14 @@ var EC = (function () {
         },
 
         // ============================================================ //
-        // Pattern       := Array | Object | Function | Any
-        // Element       := Pattern | Identifier
-        // Array         := "[" (Element? ",")* Element? "]"
+        // Pattern       := Array | Object | Function | Any | Identifier | Number | String
+        // Array         := "[" (Pattern? ",")* Pattern? "]"
         // Object        := "{" ((ObjectElement ",")* ObjectElement)? "}"
-        // ObjectElement := Identifier (":" Element)?
+        // ObjectElement := Identifier (":" Pattern)?
         // Function      := Identifier "(" Object? ")"
         // Identifier    := /^[a-zA-Z$][a-zA-Z0-9$]*/
+        // Number        := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
+        // String        := /^(["'])(?:[^\1]|\\\1)*?\1/
         // Any           := "?"
         // ============================================================ //
 
@@ -98,16 +101,23 @@ var EC = (function () {
         function parse(str) {
             this.whole = this.rest = str;
 
-            return this.parsePattern();
+            var topLevel = this.parsePattern(true);
+
+            this.skipSpaces();
+
+            if (this.hasNext())
+                throw "Trailing stubs found : '" + this.rest + "'";
+
+            return topLevel;
         },
 
         parsePattern:
         function parsePattern(allowIdentifier) {
-            var token;
+            var token, c;
 
             this.skipSpaces();
 
-            switch (this.peekCurrent()) {
+            switch (c = this.peekCurrent()) {
             case this.CH.ARRAY_B:
                 token = this.parseArray();
                 break;
@@ -117,8 +127,16 @@ var EC = (function () {
             case this.CH.ANY:
                 token = this.parseAny();
                 break;
+            case "'":
+            case '"':
+                token = this.parseString();
+                break;
             default:
-                token = this.parseFunction(allowIdentifier);
+                if (/^[0-9]/.test(c)) {
+                    token = this.parseNumber();
+                } else {
+                    token = this.parseFunction(allowIdentifier);
+                }
                 break;
             }
 
@@ -286,6 +304,36 @@ var EC = (function () {
             return {
                 type : this.TT.IDENTIFIER,
                 name : m[0]
+            };
+        },
+
+        parseNumber:
+        function parseNumber() {
+            var m = this.rest.match(/^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/);
+
+            if (!m)
+                Util.error("Invalid Number '" + this.rest + "'");
+
+            this.skipChars(m[0].length);
+
+            return {
+                type  : this.TT.NUMBER,
+                value : parseFloat(m[0])
+            };
+        },
+
+        parseString:
+        function parseString() {
+            var m = this.rest.match(/^(["'])((?:[^\1]|\\\1)*?)\1/);
+
+            if (!m)
+                Util.error("Invalid String '" + this.rest + "'");
+
+            this.skipChars(m[0].length);
+
+            return {
+                type  : this.TT.STRING,
+                value : m[2]
             };
         },
 
