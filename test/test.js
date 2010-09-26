@@ -46,3 +46,13 @@ console.log(EC.match(10, {
     30: "hogehoge",
     _: "!!!"
 }));
+
+function Point(x, y) {
+    this.x = x;
+    this.y = y;
+}
+
+console.log(EC.match(new Point(10, 20), {
+    "Point({x:10, y:_})" : function (_, that) { return _; },
+    _               : function (_, that) { return null; }
+}));
