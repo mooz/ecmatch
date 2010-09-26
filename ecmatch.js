@@ -398,6 +398,10 @@ var EC = (function () {
 
                 if (!constructor || constructor.name !== node.name)
                     return false;
+
+                if (node.children)
+                    return Matcher.match(target, node.children, result);
+
                 break;
             case TT.OBJECT:
                 if (!(target instanceof Object))
