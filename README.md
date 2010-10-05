@@ -71,8 +71,9 @@ Here is pretty good example of `Constructor Patterns` and `Case Classes`.
     var BinOp =
         EC.def(function BinOp(op, left, right) {});
     
-    // EC.matcher allows you to define function which takes exact 1 argument
-    // and returns the result of its pattern matching easily.
+    // EC.matcher allows you to define function which takes just 1 argument
+    // and returns the result of its pattern matching.
+
     var simplifyTop = EC.matcher({
         'UnOp(["-", UnOp(["-", e])])': function (_) {
             return _.e;
@@ -89,6 +90,7 @@ Here is pretty good example of `Constructor Patterns` and `Case Classes`.
     });
 
     // Instance can be created without `new`
+
     print(simplifyTop(UnOp("-", UnOp("-", Var("x"))))); // Var(x)
 
 Examples
