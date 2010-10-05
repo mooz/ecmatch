@@ -385,10 +385,15 @@ var EC = (function () {
                 if (!(target instanceof Array))
                     return false;
 
-                for (var i = 0; i < node.children.length; ++i) {
-                    var v = node.children[i];
-                    Matcher.match(target[i], v, result);
-                }
+                var len = node.children.length;
+
+                // should we check the length equality?
+                if (target.length !== len)
+                    return false;
+
+                for (var i = 0; i < len; ++i)
+                    if (!Matcher.match(target[i], node.children[i], result))
+                        return false;
                 break;
             case TT.FUNCTION:
                 var constructor;
@@ -407,15 +412,12 @@ var EC = (function () {
                 if (!(target instanceof Object))
                     return false;
 
-                var matched = true;
-
-                for (var i = 0; i < node.children.length; ++i) {
+                for (var i = 0, len = node.children.length; i < len; ++i) {
                     var v = node.children[i];
-                    if (v.name)
-                        matched = matched && Matcher.match(target[v.name], v, result);
-                }
 
-                return matched;
+                    if (!(v.name in target) || !Matcher.match(target[v.name], v, result))
+                        return false;
+                }
                 break;
             case TT.IDENTIFIER:
                 result[node.name] = target;
@@ -432,6 +434,7 @@ var EC = (function () {
                 return node.value === target;
                 break;
             case TT.ANY:
+            case TT.BLANK:
                 break;
             default:
                 return false;
