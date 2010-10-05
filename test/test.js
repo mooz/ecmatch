@@ -14,15 +14,52 @@ function assert(a, b, name) {
     }
 }
 
-function fib(n) {
-    return EC.match(n, {
-        0: 0,
-        1: 1,
-        n: function (_, it) {
-            return fib(_.n - 1) + fib(_.n - 2);
+// ============================================================ //
+
+// Define case classes using EC.cc (case class)
+var Var =
+    EC.def(function (name) {});
+
+var Number =
+    EC.def(function (num) {});
+
+var UnOp =
+    EC.def(function (op, arg) {});
+
+var BinOp =
+    EC.def(function (op, left, right) {});
+
+// ============================================================ //
+
+var simplifyTop = EC.matcher({
+    'UnOp(["-", UnOp(["-", e])])': function (_) {
+        return _.e;
+    },
+    'BinOp(["+", e, Number([0])])': function (_) {
+        return _.e;
+    },
+    'BinOp(["*", e, Number([1])])': function (_) {
+        return _.e;
+    },
+    _: function (_, it) {
+        return it;
+    }
+});
+
+// ============================================================ //
+
+print(simplifyTop(UnOp("-", UnOp("-", Var("x")))));
+
+var fib = EC.matcher({
+    0: 0,
+    1: 1,
+    n: function (_) {
+        with (_) {
+            return fib(n - 1) + fib(n - 2);
         }
-    });
-}
+    }
+});
+
 console.log(fib(10));
 
 console.log(

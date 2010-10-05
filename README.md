@@ -58,18 +58,18 @@ Here is pretty good example of `Constructor Patterns` and `Case Classes`.
 (You may know this example, if you've read **Programming in Scala**.)
 
     // Define case classes using EC.def(definition, [prototype])
-    
+
     var Var =
-        EC.def(function Var(name) {});
+        EC.def(function (name) {});
     
     var Number =
-        EC.def(function Number(num) {});
+        EC.def(function (num) {});
     
     var UnOp =
-        EC.def(function UnOp(op, arg) {});
+        EC.def(function (op, arg) {});
     
     var BinOp =
-        EC.def(function BinOp(op, left, right) {});
+        EC.def(function (op, left, right) {});
     
     // EC.matcher allows you to define function which takes just 1 argument
     // and returns the result of its pattern matching.
@@ -78,7 +78,7 @@ Here is pretty good example of `Constructor Patterns` and `Case Classes`.
         'UnOp(["-", UnOp(["-", e])])': function (_) {
             return _.e;
         },
-        'BinOp(["*", e, Number([0])])': function (_) {
+        'BinOp(["+", e, Number([0])])': function (_) {
             return _.e;
         },
         'BinOp(["*", e, Number([1])])': function (_) {
