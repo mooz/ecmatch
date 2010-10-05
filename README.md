@@ -9,9 +9,9 @@ Usage
 `ecmatch.js` defines the object `EC` which allows you use pattern matching.
 
 * `EC.match`
- * Pattern matching
+  * Pattern matching
 * `EC.when`
- * Adds pattern guard to `EC.match`
+  * Adds pattern guard to `EC.match`
 
 ECMatch supports nested patterns.
 
@@ -22,7 +22,7 @@ ECMatch supports nested patterns.
     };
 
     EC.match(obj, {
-        "{ foo: [, x, y, , z], bar: s, baz }": function (_, that) {
+        "{ foo: [, x, y, , z], bar: s, baz }": function (_, it) {
             with (_) {
                 print(x, y, z); // 2, 3, 5
                 print(s);       // Bar
