@@ -112,7 +112,7 @@ var EC = (function () {
         // Identifier        := /^[a-zA-Z$][a-zA-Z0-9$]*/
         // IdentifierSpecial := "true" | "false" | "null" | "undefined"
         // Number            := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
-        // String            := /^(["'])((?:\\.|[^\1])*?)\1/
+        // String            := /^(?:'((?:\\.|[^'])*?)'|"((?:\\.|[^"])*?)")/
         // Any               := "_"
         // ============================================================ //
 
@@ -361,7 +361,7 @@ var EC = (function () {
 
         parseString:
         function parseString() {
-            var m = this.rest.match(/^(["'])((?:\\.|[^\1])*?)\1/);
+            var m = this.rest.match(/^(?:'((?:\\.|[^'])*?)'|"((?:\\.|[^"])*?)")/);
 
             if (!m)
                 Util.error("Invalid String '" + this.rest + "'");
