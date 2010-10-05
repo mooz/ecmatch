@@ -6,12 +6,14 @@ ECMatch is the pattern match library for ECMAScript (JavaScript).
 Usage
 =====
 
-`ecmatch.js` defines the object `EC` which allows you use pattern matching.
+`ecmatch.js` defines the object `EC` which allows you to do pattern matching in JavaScript.
 
 * `EC.match`
-  * Pattern matching
+  * Do pattern matching
 * `EC.when`
   * Adds pattern guard to `EC.match`
+* `EC.def`
+  * Use this method to define `case classes`
 
 ECMatch supports nested patterns.
 
@@ -44,7 +46,7 @@ You can add pattern guard by specifying `EC.when`
         x: EC.when("x > 0", function (_, it) {
             return it + " is positive";
         }),
-        y: EC.when(function (_, it) { return it < 0; }, function (_, it) {
+        y: EC.when("y < 0", function (_, it) {
             return it + " is negative";
         }),
         z: function (it) {
@@ -52,7 +54,63 @@ You can add pattern guard by specifying `EC.when`
         }
     });
 
-You can use `constructor pattern` by specifying the constructor name.
+Here is pretty good example of `Constructor Patterns` and `Case Classes`.
+(You may know this example, if you've read **Programming in Scala**.)
+
+    // Define case classes using EC.def(definition, [prototype])
+    
+    var Var =
+        EC.def(function Var(name) {});
+    
+    var Number =
+        EC.def(function Number(num) {});
+    
+    var UnOp =
+        EC.def(function UnOp(op, arg) {});
+    
+    var BinOp =
+        EC.def(function BinOp(op, left, right) {});
+    
+    // EC.matcher allows you to define function which takes exact 1 argument
+    // and returns the result of its pattern matching easily.
+    var simplifyTop = EC.matcher({
+        'UnOp(["-", UnOp(["-", e])])': function (_) {
+            return _.e;
+        },
+        'BinOp(["*", e, Number([0])])': function (_) {
+            return _.e;
+        },
+        'BinOp(["*", e, Number([1])])': function (_) {
+            return _.e;
+        },
+        _: function (_, it) {
+            return it;
+        }
+    });
+
+    // Instance can be created without `new`
+    print(simplifyTop(UnOp("-", UnOp("-", Var("x"))))); // Var(x)
+
+Examples
+========
+
+Fibonacci
+---------
+
+    var fib = EC.matcher({
+        0: 0,
+        1: 1,
+        n: function (_) {
+            with (_) {
+                return fib(n - 1) + fib(n - 2);
+            }
+        }
+    });
+    
+    console.log(fib(10)); // 55
+
+Point
+-----
 
     function Point2(x, y) {
         this.x = x;
