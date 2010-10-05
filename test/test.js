@@ -15,20 +15,34 @@ function assert(a, b, name) {
 }
 
 function fib(n) {
-    return match(n, {
+    return EC.match(n, {
         0: 0,
         1: 1,
-        n: function (_, n) { return fib(_.n - 1) + fib(_.n - 2); }
+        n: function (_, it) {
+            return fib(_.n - 1) + fib(_.n - 2);
+        }
     });
 }
-
 console.log(fib(10));
 
-EC.match([1, 2, 3, 4, 5], {
-    "[, x, y, , z]": function (r) {
-        with (r) {
-            print(x, y, z);
+console.log(
+    EC.match(-5 + ~~(Math.random() * 10), {
+        x: EC.when("x > 0", function (_, it) {
+            return it + " is positive";
+        }),
+        y: EC.when(function (_, it) { return it < 0; }, function (_, it) {
+            return it + " is negative";
+        }),
+        z: function (it) {
+            return it + " is zero";
         }
+    })
+);
+
+EC.match([1, 2, 3, 4, 5], {
+    "[, x, y, , z]": function (_) {
+        with (_)
+            print(x, y, z);
     },
 
     _: function () {

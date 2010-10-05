@@ -461,20 +461,52 @@ var EC = (function () {
 
         match:
         function match(target, patterns) {
-            var value;
+            // `_' is not allowed as the property of `result' (_ is used as wild card).
+            // So, we can use the variable `_' safely in the `with' statement.
+            var value, _;
 
             Util.hashEach(patterns, function (pattern, handler) {
                 var node   = Parser.parse(pattern);
                 var result = {};
 
                 if (Matcher.match(target, node, result)) {
-                    value = typeof handler === "function" ?
-                        handler(result, target) : handler;
+                    if (handler instanceof Object &&
+                        handler.__ECMATCH__GUARD__) {
+                        // pattern guard is given,
+                        // check if result satisfies the condition.
+
+                        if (typeof handler.cond === "function") {
+                            _ = handler.cond(result, target);
+                        } else {
+                            var __ECMATCH__COND__ = handler.cond;
+                            with (result)
+                                _ = eval(__ECMATCH__COND__);
+                        }
+
+                        if (!_)
+                            return false; // break
+                        handler = handler.then;
+                    }
+
+                    if (typeof handler === "function")
+                        value = handler(result, target);
+                    else
+                        value = handler;
+
                     return true; // break;
                 }
             });
 
             return value;
+        },
+
+        when:
+        function when(cond, then) {
+            return {
+                cond               : cond,
+                then               : then,
+                __ECMATCH__GUARD__ : true
+            };
         }
     };
 
