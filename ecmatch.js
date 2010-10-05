@@ -108,7 +108,7 @@ var EC = (function () {
         // Array             := "[" (Pattern? ",")* Pattern? "]"
         // Object            := "{" ((ObjectElement ",")* ObjectElement)? "}"
         // ObjectElement     := Identifier (":" Pattern)?
-        // Function          := Identifier "(" Object? ")"
+        // Function          := Identifier "(" (Object | Array)? ")"
         // Identifier        := /^[a-zA-Z$][a-zA-Z0-9$]*/
         // IdentifierSpecial := "true" | "false" | "null" | "undefined"
         // Number            := /^[0-9]*(?:\.[0-9](?:e[0-9]+)?)?/
@@ -295,6 +295,8 @@ var EC = (function () {
 
             if (this.peekCurrent() === this.CH.OBJECT_B)
                 token.children = this.parseObject();
+            else if (this.peekCurrent() === this.CH.ARRAY_B)
+                token.children = this.parseArray();
             else
                 token.children = null;
 
@@ -404,8 +406,16 @@ var EC = (function () {
                 if (!constructor || constructor.name !== node.name)
                     return false;
 
-                if (node.children)
-                    return Matcher.match(target, node.children, result);
+                if (node.children) {
+                    if (node.children.type === TT.ARRAY) {
+                        if ("__ECMATCH__ARGS__" in target)
+                            return Matcher.match(target.__ECMATCH__ARGS__, node.children, result);
+                        else
+                            throw "Given class is not a case class. Use EC.def() to define a case class.";
+                    } else {
+                        return Matcher.match(target, node.children, result);
+                    }
+                }
 
                 break;
             case TT.OBJECT:
@@ -457,6 +467,47 @@ var EC = (function () {
                     return self.match.apply(self, arguments);
                 };
             }
+        },
+
+        // define case class
+        // var Klass = EC.cc(function Klass() { ... }, { ... });
+        def:
+        function def(klass, prototype) {
+            klass.prototype.toString = function () {
+                var self = this;
+
+                return klass.name + "(" + self.__ECMATCH__ARGS__.join(", ") + ")";
+            };
+
+            if (prototype) {
+                for (var k in prototype)
+                    if (prototype.hasOwnProperty(k))
+                        klass.prototype[k] = prototype[k];
+            }
+
+            var Traits = function () {};
+            Traits.prototype = klass.prototype;
+
+            return function () {
+                var instance = new Traits();
+
+                var tmp = klass.apply(instance, arguments);
+
+                // For builtin-functions
+                if (tmp instanceof Object)
+                    instance = tmp;
+
+                instance.__ECMATCH__ARGS__ = Array.prototype.slice.call(arguments);
+
+                return instance;
+            };
+        },
+
+        matcher:
+        function matcher(patterns) {
+            return function (v) {
+                return EC.match(v, patterns);
+            };
         },
 
         match:
